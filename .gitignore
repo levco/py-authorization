@@ -1,4 +1,8 @@
+venv/
+build/
 __pycache__/
-*.pyc
+py_authorization.egg-info/
+.mypy_cache/
 
+*.pyc
 .DS_Store

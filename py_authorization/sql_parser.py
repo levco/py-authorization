@@ -3,7 +3,7 @@ from sqlalchemy import inspect
 from sqlalchemy.orm.util import AliasedClass
 
 
-def to_class(entity):
+def to_class(entity):  # type: ignore
     """Get mapped class from SQLAlchemy entity."""
     if isinstance(entity, AliasedClass):
         return inspect(entity).class_
@@ -13,7 +13,7 @@ def to_class(entity):
         return entity
 
 
-def get_column_entity_with_attribute(statement, attribute):
+def get_column_entity_with_attribute(statement, attribute):  # type: ignore
 
     try:
         for cd in statement.column_descriptions:
@@ -25,7 +25,7 @@ def get_column_entity_with_attribute(statement, attribute):
     return None
 
 
-def all_entities_in_statement(statement):
+def all_entities_in_statement(statement):  # type: ignore
     """
     Get all ORM entities that will be loaded in a select statement.
 
@@ -42,7 +42,7 @@ def all_entities_in_statement(statement):
     return {a.__name__: a for a in resp}
 
 
-def get_column_entities(statement):
+def get_column_entities(statement):  # type: ignore
     """Get entities in statement that are referenced as columns.
 
     Examples::
@@ -54,7 +54,7 @@ def get_column_entities(statement):
     Does not include eager loaded entities.
     """
 
-    def _entities_in_statement(statement):
+    def _entities_in_statement(statement):  # type: ignore
         try:
             entities = (cd["entity"] for cd in statement.column_descriptions)
             return set(e for e in entities if e is not None)
@@ -66,7 +66,7 @@ def get_column_entities(statement):
     return entities
 
 
-def default_load_entities(entities):
+def default_load_entities(entities):  # type: ignore
     """Find related entities that will be loaded on all queries to ``entities``
         due to the default loader strategy.
 
@@ -111,7 +111,7 @@ def default_load_entities(entities):
 # "strategy" is a tuple that keys to one of the loader strategies,
 # some of them apply to relationships and others to column attributes
 # then "options" is extra stuff like "innerjoin=True"
-def get_joinedload_entities(stmt):
+def get_joinedload_entities(stmt):  # type: ignore
     """Get extra entities that are loaded from a ``stmt`` due to joinedload
     options specified in the statement options.
 

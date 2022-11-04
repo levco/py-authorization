@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "py_authorization"
+requires-python = ">=3.7"
+dependencies = [
+    "SQLAlchemy~=1.4",
+]
+dynamic = ["version"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
