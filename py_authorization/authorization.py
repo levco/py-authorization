@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional, TypedDict, TypeVar, Union
+from typing import Any, Optional, TypedDict, TypeVar
 
 from sqlalchemy import inspect
 from sqlalchemy.orm.query import Query
@@ -18,6 +18,14 @@ class _ApplicableStrategies(TypedDict):
     context: Context
 
 
+class _EmptyEntity(object):
+    """An empty entity is one that is passed as a fake entity to methods that ask for one but the current permission
+    check doesn't require an entity to run.
+    """
+
+    pass
+
+
 @dataclass
 class CheckResponse:
     resource: str
@@ -31,15 +39,13 @@ class Authorization:
     def __init__(
         self,
         policies: list[Policy],
-        strategies_mapper: StrategyMapper,
+        strategy_mapper: StrategyMapper,
         default_action: str = "read",
     ) -> None:
         self.logger = logging.getLogger(__name__)
         self.default_action = default_action
         self.policies = policies
-        self.strategy_builder = PolicyStrategyBuilder(
-            strategies_mapper=strategies_mapper
-        )
+        self.strategy_builder = PolicyStrategyBuilder(strategy_mapper=strategy_mapper)
 
     def _get_policy(
         self,
@@ -114,19 +120,39 @@ class Authorization:
         action: str,
         resource: str,
         sub_action: Optional[str] = None,
-        args: Optional[dict[str, Any]] = None,
+        args: dict[str, Any] = dict(),
     ) -> bool:
         """
-        checks permissions not entity specific , returns True/False
+        Checks permissions not entity specific , returns True/False.
         """
-        return self.is_entity_allowed(
+        action = action or self.default_action
+
+        policy = self._get_policy(
             user_role=user_role,
             action=action,
-            entity=True,
-            resource=resource,
             sub_action=sub_action,
-            args=args,
+            resource_to_access=resource,
         )
+        if not policy:
+            return False
+        if policy.deny:
+            return False
+
+        if policy.strategies:
+            context = Context(
+                user_role=user_role,
+                policy=policy,
+                resource=resource,
+                action=action,
+                sub_action=sub_action,
+                args=args,
+            )
+            if not self._apply_strategies_to_entity(
+                entity=_EmptyEntity(), strategies=policy.strategies, context=context
+            ):
+                return False
+
+        return True
 
     def is_entity_allowed(
         self,
@@ -136,7 +162,7 @@ class Authorization:
         entity: T,
         resource: str,
         sub_action: Optional[str] = None,
-        args: Optional[dict[str, Any]] = None,
+        args: dict[str, Any] = dict(),
     ) -> bool:
         """
         Checks a specific entity against the policies rules and returns True/False
@@ -186,30 +212,6 @@ class Authorization:
                 resp.append(valid_entity)
         return resp
 
-    def apply_policies_to_attribute(
-        self,
-        *,
-        user_role: str,
-        entity: T,
-        resource_to_check: str,
-        attribute_name: str,
-        action: Optional[str] = None,
-        sub_action: Optional[str] = None,
-        args: Optional[dict[str, Any]] = None,
-    ) -> Any:
-        """
-        Checks an entity attribute, this is helpful to block individual properties in a Node
-        """
-        return self.apply_policies_to_one(
-            user_role=user_role,
-            entity=entity,
-            action=action,
-            sub_action=sub_action,
-            resource_to_check=resource_to_check,
-            attribute_name=attribute_name,
-            args=args,
-        )
-
     def apply_policies_to_one(
         self,
         *,
@@ -218,16 +220,14 @@ class Authorization:
         action: Optional[str] = None,
         sub_action: Optional[str] = None,
         resource_to_check: Optional[str] = None,
-        attribute_name: Optional[str] = None,
-        args: Optional[dict[str, Any]] = None,
-    ) -> Optional[Union[T, Any]]:
+        args: dict[str, Any] = dict(),
+    ) -> Optional[T]:
         """
         Applies policies to one entity and return the entity if its allowed
         """
         self.logger.debug(f"Apply policies to ONE: {entity}")
         if not entity:
             return None
-        args = args or dict()
         action = action or self.default_action
 
         resource_to_access: str = resource_to_check or ""
@@ -255,8 +255,6 @@ class Authorization:
             return None
 
         if not policy.strategies:
-            if attribute_name:
-                return getattr(entity, attribute_name)
             return entity
 
         context = Context(
@@ -266,17 +264,8 @@ class Authorization:
             action=action,
             sub_action=sub_action,
             args=args,
-            attribute_name=attribute_name,
         )
-        for strategy in policy.strategies:
-            strategy_instance = self.strategy_builder.build(strategy)
-            if not strategy_instance:
-                self.logger.debug("Rejected")
-                return None
-            entity = strategy_instance.apply_policies_to_entity(entity, context)
-            self.logger.debug("Approved") if entity else self.logger.debug("Rejected")
-
-        return entity
+        return self._apply_strategies_to_entity(entity, policy.strategies, context)
 
     def apply_policies_to_query(
         self,
@@ -342,15 +331,29 @@ class Authorization:
                 )
         if not strategies_to_apply:
             return query
-        self.logger.debug("Applying strategies")
-        for to_apply in strategies_to_apply:
-            for strategy in to_apply["strategies"]:
-                self.logger.debug(f"Strategy: {strategy}")
-                strategy_instance = self.strategy_builder.build(strategy)
-                if not strategy_instance:
-                    return query.filter(False)
-                query = strategy_instance.apply_policies_to_query(
-                    query, to_apply["context"]
-                )
 
+        for to_apply in strategies_to_apply:
+            query = self._apply_strategies_to_query(
+                query, to_apply["strategies"], to_apply["context"]
+            )
+        return query
+
+    def _apply_strategies_to_entity(
+        self, entity: Optional[T], strategies: list[Strategy], context: Context
+    ) -> Optional[T]:
+        for strategy in strategies:
+            strategy_instance = self.strategy_builder.build(strategy)
+            if not strategy_instance:
+                return None
+            entity = strategy_instance.apply_policies_to_entity(entity, context)
+        return entity
+
+    def _apply_strategies_to_query(
+        self, query: Query, strategies: list[Strategy], context: Context
+    ) -> Query:
+        for strategy in strategies:
+            strategy_instance = self.strategy_builder.build(strategy)
+            if not strategy_instance:
+                return query.filter(False)
+            query = strategy_instance.apply_policies_to_query(query, context)
         return query

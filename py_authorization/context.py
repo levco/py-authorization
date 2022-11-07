@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from py_authorization.policy import Policy
@@ -11,5 +11,4 @@ class Context:
     resource: str
     action: Optional[str] = None
     sub_action: Optional[str] = None
-    args: Optional[dict[str, Any]] = None
-    attribute_name: Optional[str] = None
+    args: dict[str, Any] = field(default_factory=dict)

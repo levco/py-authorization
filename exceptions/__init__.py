@@ -1,2 +1,0 @@
-class NotAuthorizedError(Exception):
-    pass
