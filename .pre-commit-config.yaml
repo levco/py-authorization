@@ -1,0 +1,43 @@
+repos:
+  - repo: https://github.com/asottile/seed-isort-config
+    rev: v2.2.0
+    hooks:
+      - id: seed-isort-config
+  - repo: https://github.com/pre-commit/mirrors-isort
+    rev: v5.8.0
+    hooks:
+      - id: isort
+        exclude: ^(env/)
+  - repo: https://github.com/ambv/black
+    rev: 22.6.0
+    hooks:
+      - id: black
+        exclude: ^env/
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 5.0.4
+    hooks:
+      - id: flake8
+        exclude: ^env/
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v0.990
+    hooks:
+      - id: mypy
+        exclude: ^(env/)
+  - repo: local
+    hooks:
+      - id: new_line_check
+        name: new_line_check
+        entry: bin/new_line_check.sh
+        language: script
+        types: [python]
+      - id: pdb_check
+        name: pdb_check
+        entry: bin/pdb_check.sh
+        language: script
+        types: [python]
+      - id: pytest-check
+        name: pytest-check
+        entry: pytest tests/
+        language: system
+        pass_filenames: false
+        always_run: true

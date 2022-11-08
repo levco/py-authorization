@@ -6,3 +6,6 @@ py_authorization.egg-info/
 
 *.pyc
 .DS_Store
+
+.coverage
+coverage.xml
