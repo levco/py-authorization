@@ -120,7 +120,7 @@ class Authorization:
         action: str,
         resource: str,
         sub_action: Optional[str] = None,
-        args: dict[str, Any] = dict(),
+        args: Optional[dict[str, Any]] = None,
     ) -> bool:
         """
         Checks permissions not entity specific , returns True/False.
@@ -145,7 +145,7 @@ class Authorization:
                 resource=resource,
                 action=action,
                 sub_action=sub_action,
-                args=args,
+                args=args if args else dict(),
             )
             if not self._apply_strategies_to_entity(
                 entity=_EmptyEntity(), strategies=policy.strategies, context=context
@@ -162,7 +162,7 @@ class Authorization:
         entity: T,
         resource: str,
         sub_action: Optional[str] = None,
-        args: dict[str, Any] = dict(),
+        args: Optional[dict[str, Any]] = None,
     ) -> bool:
         """
         Checks a specific entity against the policies rules and returns True/False
@@ -220,7 +220,7 @@ class Authorization:
         action: Optional[str] = None,
         sub_action: Optional[str] = None,
         resource_to_check: Optional[str] = None,
-        args: dict[str, Any] = dict(),
+        args: Optional[dict[str, Any]] = None,
     ) -> Optional[T]:
         """
         Applies policies to one entity and return the entity if its allowed
@@ -263,7 +263,7 @@ class Authorization:
             resource=resource_to_access,
             action=action,
             sub_action=sub_action,
-            args=args,
+            args=args if args else dict(),
         )
         return self._apply_strategies_to_entity(entity, policy.strategies, context)
 
