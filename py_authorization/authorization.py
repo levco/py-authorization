@@ -145,7 +145,7 @@ class Authorization:
                 resource=resource,
                 action=action,
                 sub_action=sub_action,
-                args=args if args else dict(),
+                args=args or dict(),
             )
             if not self._apply_strategies_to_entity(
                 entity=_EmptyEntity(), strategies=policy.strategies, context=context
@@ -263,7 +263,7 @@ class Authorization:
             resource=resource_to_access,
             action=action,
             sub_action=sub_action,
-            args=args if args else dict(),
+            args=args or dict(),
         )
         return self._apply_strategies_to_entity(entity, policy.strategies, context)
 
