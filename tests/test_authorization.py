@@ -47,7 +47,21 @@ def test_authorization_evaluates_simple_policy() -> None:
     form = Mock()
 
     resp = authorization.apply_policies_to_one(
-        user_role=Role.ADMIN,
+        user_roles=[Role.ADMIN],
+        entity=form,
+        resource_to_check="Form",
+        action=Action.CREATE,
+    )
+
+    assert_that(resp).is_equal_to(form)
+
+
+def test_authorization_evaluates_simple_policy_with_two_user_roles() -> None:
+    authorization = Authorization(policies=[admin_policy], strategy_mapper={})
+    form = Mock()
+
+    resp = authorization.apply_policies_to_one(
+        user_roles=[Role.VIEWER, Role.ADMIN],
         entity=form,
         resource_to_check="Form",
         action=Action.CREATE,
@@ -61,7 +75,7 @@ def test_authorization_evaluates_simple_policy_and_rejects_the_object() -> None:
     form = Mock()
 
     resp = authorization.apply_policies_to_one(
-        user_role=Role.VIEWER,
+        user_roles=[Role.VIEWER],
         entity=form,
         resource_to_check="Form",
         action=Action.CREATE,
@@ -78,7 +92,7 @@ def test_authorization_evaluates_simple_policy_multiple_objects() -> None:
     forms = [Mock(), Mock()]
 
     resp = authorization.apply_policies_to_many(
-        user_role=Role.ADMIN,
+        user_roles=[Role.ADMIN],
         entities=forms,
         resource_to_check="Form",
         action=Action.CREATE,
@@ -92,7 +106,7 @@ def test_authorization_evaluates_simple_policy_and_reject_multiple_objects() -> 
     forms = [Mock(), Mock()]
 
     resp = authorization.apply_policies_to_many(
-        user_role=Role.VIEWER,
+        user_roles=[Role.VIEWER],
         entities=forms,
         resource_to_check="Form",
         action=Action.CREATE,
@@ -115,7 +129,7 @@ def test_authorization_applies_policy_with_strategy() -> None:
     forms = [Mock(id=1), Mock(id=2)]
 
     resp = authorization.apply_policies_to_many(
-        user_role=Role.VIEWER,
+        user_roles=[Role.VIEWER],
         entities=forms,
         resource_to_check="Form",
         action=Action.READ,
@@ -139,7 +153,7 @@ def test_authorization_applies_policy_with_strategy_to_one_object() -> None:
     form = Mock()
 
     resp = authorization.apply_policies_to_one(
-        user_role=Role.ADMIN,
+        user_roles=[Role.ADMIN],
         entity=form,
         resource_to_check="Form",
         action=Action.CREATE,
@@ -153,7 +167,7 @@ def test_authorization_evaluates_simple_policy_query() -> None:
     query = Mock()
 
     resp = authorization.apply_policies_to_query(
-        user_role=Role.ADMIN,
+        user_roles=[Role.ADMIN],
         query=query,
         action=Action.CREATE,
         resources_to_check=["Form"],
@@ -167,7 +181,7 @@ def test_authorization_evaluates_simple_policy_query_and_apply_empty_filter_when
     query = Mock()
 
     resp = authorization.apply_policies_to_query(
-        user_role=Role.VIEWER,
+        user_roles=[Role.VIEWER],
         query=query,
         action=Action.CREATE,
         resources_to_check=["Form"],
@@ -189,7 +203,7 @@ def test_authorization_applies_policy_with_strategy_to_query() -> None:
     query = Mock()
 
     authorization.apply_policies_to_query(
-        user_role=Role.VIEWER,
+        user_roles=[Role.VIEWER],
         query=query,
         action=Action.READ,
         resources_to_check=["Form"],

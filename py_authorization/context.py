@@ -6,7 +6,7 @@ from py_authorization.policy import Policy
 
 @dataclass
 class Context:
-    user_role: str
+    user_roles: list[str]
     policy: Policy
     resource: str
     args: dict[str, Any]

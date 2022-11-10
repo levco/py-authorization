@@ -37,7 +37,7 @@ def test_find_wildcard_policy() -> None:
     authorization = Authorization(policies=[wildcard_policy], strategy_mapper={})
 
     resp = authorization._get_policy(
-        user_role=Role.ADMIN,
+        user_roles=[Role.ADMIN],
         resource_to_access="Form",
         action=Action.READ,
         sub_action=None,
@@ -52,7 +52,7 @@ def test_find_viewer_policy() -> None:
     )
 
     resp = authorization._get_policy(
-        user_role=Role.VIEWER,
+        user_roles=[Role.VIEWER],
         resource_to_access="Form",
         action=Action.READ,
         sub_action=None,
@@ -65,7 +65,7 @@ def test_find_no_policy_when_role_doesnt_match() -> None:
     authorization = Authorization(policies=[viewer_policy], strategy_mapper={})
 
     resp = authorization._get_policy(
-        user_role=Role.EDITOR,
+        user_roles=[Role.EDITOR],
         resource_to_access="Form",
         action=Action.READ,
         sub_action=None,
@@ -80,7 +80,7 @@ def test_find_form_policy() -> None:
     )
 
     resp = authorization._get_policy(
-        user_role=Role.ADMIN,
+        user_roles=[Role.ADMIN],
         resource_to_access="Form",
         action=Action.READ,
         sub_action=None,
@@ -93,7 +93,7 @@ def test_find_no_policy_when_resource_is_not_found() -> None:
     authorization = Authorization(policies=[form_policy], strategy_mapper={})
 
     resp = authorization._get_policy(
-        user_role=Role.ADMIN,
+        user_roles=[Role.ADMIN],
         resource_to_access="Submissions",
         action=Action.READ,
         sub_action=None,
@@ -108,7 +108,7 @@ def test_find_update_policy() -> None:
     )
 
     resp = authorization._get_policy(
-        user_role=Role.EDITOR,
+        user_roles=[Role.EDITOR],
         resource_to_access="Form",
         action=Action.UPDATE,
         sub_action=None,

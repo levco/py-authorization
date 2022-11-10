@@ -49,7 +49,7 @@ class Authorization:
 
     def _get_policy(
         self,
-        user_role: str,
+        user_roles: list[str],
         resource_to_access: str,
         action: str,
         sub_action: Optional[str],
@@ -57,7 +57,7 @@ class Authorization:
         policy: Policy
         for policy in self.policies:
 
-            roles = policy.roles
+            roles = set(policy.roles)
             resources = [r.lower() for r in policy.resources]
             actions = policy.actions
 
@@ -67,7 +67,7 @@ class Authorization:
                 continue
             if "*" not in resources and resource_to_access.lower() not in resources:
                 continue
-            if "*" not in roles and user_role not in roles:
+            if "*" not in roles and roles.isdisjoint(user_roles):
                 if policy.last_rule:  # last rule for the policy resources
                     break
                 continue
@@ -78,7 +78,7 @@ class Authorization:
     def get_permissions_info(
         self,
         *,
-        user_role: str,
+        user_roles: list[str],
         action: str,
         resource: str,
         sub_action: Optional[str] = None,
@@ -90,7 +90,7 @@ class Authorization:
         info = "Allowed."
         allowed = True
         policy = self._get_policy(
-            user_role=user_role,
+            user_roles=user_roles,
             resource_to_access=resource,
             action=action,
             sub_action=sub_action,
@@ -116,7 +116,7 @@ class Authorization:
     def is_allowed(
         self,
         *,
-        user_role: str,
+        user_roles: list[str],
         action: str,
         resource: str,
         sub_action: Optional[str] = None,
@@ -128,7 +128,7 @@ class Authorization:
         action = action or self.default_action
 
         policy = self._get_policy(
-            user_role=user_role,
+            user_roles=user_roles,
             action=action,
             sub_action=sub_action,
             resource_to_access=resource,
@@ -140,7 +140,7 @@ class Authorization:
 
         if policy.strategies:
             context = Context(
-                user_role=user_role,
+                user_roles=user_roles,
                 policy=policy,
                 resource=resource,
                 action=action,
@@ -157,7 +157,7 @@ class Authorization:
     def is_entity_allowed(
         self,
         *,
-        user_role: str,
+        user_roles: list[str],
         action: str,
         entity: T,
         resource: str,
@@ -168,7 +168,7 @@ class Authorization:
         Checks a specific entity against the policies rules and returns True/False
         """
         resp = self.apply_policies_to_one(
-            user_role=user_role,
+            user_roles=user_roles,
             entity=entity,
             resource_to_check=resource,
             action=action,
@@ -180,7 +180,7 @@ class Authorization:
     def apply_policies_to_many(
         self,
         *,
-        user_role: str,
+        user_roles: list[str],
         entities: list[T],
         action: Optional[str] = None,
         sub_action: Optional[str] = None,
@@ -201,7 +201,7 @@ class Authorization:
 
         for entity in entities:
             valid_entity = self.apply_policies_to_one(
-                user_role=user_role,
+                user_roles=user_roles,
                 action=action,
                 sub_action=sub_action,
                 entity=entity,
@@ -215,7 +215,7 @@ class Authorization:
     def apply_policies_to_one(
         self,
         *,
-        user_role: str,
+        user_roles: list[str],
         entity: Optional[T],
         action: Optional[str] = None,
         sub_action: Optional[str] = None,
@@ -236,7 +236,7 @@ class Authorization:
             resource_to_access = model.__name__
 
         policy = self._get_policy(
-            user_role=user_role,
+            user_roles=user_roles,
             resource_to_access=resource_to_access,
             action=action,
             sub_action=sub_action,
@@ -258,7 +258,7 @@ class Authorization:
             return entity
 
         context = Context(
-            user_role=user_role,
+            user_roles=user_roles,
             policy=policy,
             resource=resource_to_access,
             action=action,
@@ -270,7 +270,7 @@ class Authorization:
     def apply_policies_to_query(
         self,
         *,
-        user_role: str,
+        user_roles: list[str],
         query: Query,
         action: Optional[str] = None,
         sub_action: Optional[str] = None,
@@ -298,7 +298,7 @@ class Authorization:
         for resource_to_access in resources_to_check:
             self.logger.debug(f"Checking Resource: '{resource_to_access}'")
             policy = self._get_policy(
-                user_role=user_role,
+                user_roles=user_roles,
                 resource_to_access=resource_to_access,
                 action=action,
                 sub_action=sub_action,
@@ -319,7 +319,7 @@ class Authorization:
 
             if policy.strategies:
                 context = Context(
-                    user_role=user_role,
+                    user_roles=user_roles,
                     policy=policy,
                     resource=resource_to_access,
                     action=action,
