@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional, TypedDict, TypeVar
+from typing import Any, Callable, Optional, TypedDict, TypeVar
 
 from sqlalchemy import inspect
 from sqlalchemy.orm.query import Query
@@ -39,13 +39,13 @@ class Authorization:
     def __init__(
         self,
         policies: list[Policy],
-        strategy_mapper: StrategyMapper,
+        strategy_mapper_callable: Callable[[], StrategyMapper],
         default_action: str = "read",
     ) -> None:
         self.logger = logging.getLogger(__name__)
         self.default_action = default_action
         self.policies = policies
-        self.strategy_builder = PolicyStrategyBuilder(strategy_mapper=strategy_mapper)
+        self.strategy_builder = PolicyStrategyBuilder(strategy_mapper_callable=strategy_mapper_callable)
 
     def _get_policy(
         self,

@@ -43,7 +43,7 @@ strategy_policy = Policy(
 
 
 def test_authorization_evaluates_simple_policy() -> None:
-    authorization = Authorization(policies=[admin_policy], strategy_mapper={})
+    authorization = Authorization(policies=[admin_policy], strategy_mapper_callable=Mock(return_value={}))
     form = Mock()
 
     resp = authorization.apply_policies_to_one(
@@ -57,7 +57,7 @@ def test_authorization_evaluates_simple_policy() -> None:
 
 
 def test_authorization_evaluates_simple_policy_and_rejects_the_object() -> None:
-    authorization = Authorization(policies=[admin_policy], strategy_mapper={})
+    authorization = Authorization(policies=[admin_policy], strategy_mapper_callable=Mock(return_value={}))
     form = Mock()
 
     resp = authorization.apply_policies_to_one(
@@ -71,9 +71,8 @@ def test_authorization_evaluates_simple_policy_and_rejects_the_object() -> None:
 
 
 def test_authorization_evaluates_simple_policy_multiple_objects() -> None:
-    strategy_mapper: StrategyMapper = {}
     authorization = Authorization(
-        policies=[admin_policy], strategy_mapper=strategy_mapper
+        policies=[admin_policy], strategy_mapper_callable=Mock(return_value={})
     )
     forms = [Mock(), Mock()]
 
@@ -88,7 +87,7 @@ def test_authorization_evaluates_simple_policy_multiple_objects() -> None:
 
 
 def test_authorization_evaluates_simple_policy_and_reject_multiple_objects() -> None:
-    authorization = Authorization(policies=[admin_policy], strategy_mapper={})
+    authorization = Authorization(policies=[admin_policy], strategy_mapper_callable=Mock(return_value={}))
     forms = [Mock(), Mock()]
 
     resp = authorization.apply_policies_to_many(
@@ -109,7 +108,7 @@ def test_authorization_applies_policy_with_strategy() -> None:
 
     strategy_mapper: StrategyMapper = {"TestStrategy": TestStrategy}
     authorization = Authorization(
-        policies=[strategy_policy], strategy_mapper=strategy_mapper
+        policies=[strategy_policy], strategy_mapper_callable=Mock(return_value=strategy_mapper)
     )
 
     forms = [Mock(id=1), Mock(id=2)]
@@ -134,7 +133,7 @@ def test_authorization_applies_policy_with_strategy_to_one_object() -> None:
     strategy_mapper: StrategyMapper = {"TestStrategy": TestStrategy}
     authorization = Authorization(
         policies=[admin_policy],
-        strategy_mapper=strategy_mapper,
+        strategy_mapper_callable=Mock(return_value=strategy_mapper)
     )
     form = Mock()
 
@@ -149,7 +148,7 @@ def test_authorization_applies_policy_with_strategy_to_one_object() -> None:
 
 
 def test_authorization_evaluates_simple_policy_query() -> None:
-    authorization = Authorization(policies=[admin_policy], strategy_mapper={})
+    authorization = Authorization(policies=[admin_policy], strategy_mapper_callable=Mock(return_value={}))
     query = Mock()
 
     resp = authorization.apply_policies_to_query(
@@ -163,7 +162,7 @@ def test_authorization_evaluates_simple_policy_query() -> None:
 
 
 def test_authorization_evaluates_simple_policy_query_and_apply_empty_filter_when_is_rejected() -> None:
-    authorization = Authorization(policies=[admin_policy], strategy_mapper={})
+    authorization = Authorization(policies=[admin_policy], strategy_mapper_callable=Mock(return_value={}))
     query = Mock()
 
     resp = authorization.apply_policies_to_query(
@@ -184,7 +183,7 @@ def test_authorization_applies_policy_with_strategy_to_query() -> None:
 
     strategy_mapper: StrategyMapper = {"TestStrategy": TestStrategy}
     authorization = Authorization(
-        policies=[strategy_policy], strategy_mapper=strategy_mapper
+        policies=[strategy_policy], strategy_mapper_callable=Mock(return_value=strategy_mapper)
     )
     query = Mock()
 

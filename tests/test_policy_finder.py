@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 from assertpy import assert_that
 
 from py_authorization import Authorization, Policy
@@ -34,7 +36,7 @@ update_policy = Policy(
 
 
 def test_find_wildcard_policy() -> None:
-    authorization = Authorization(policies=[wildcard_policy], strategy_mapper={})
+    authorization = Authorization(policies=[wildcard_policy], strategy_mapper_callable=Mock(return_value={}))
 
     resp = authorization._get_policy(
         user_role=Role.ADMIN,
@@ -48,7 +50,7 @@ def test_find_wildcard_policy() -> None:
 
 def test_find_viewer_policy() -> None:
     authorization = Authorization(
-        policies=[viewer_policy, wildcard_policy], strategy_mapper={}
+        policies=[viewer_policy, wildcard_policy], strategy_mapper_callable=Mock(return_value={})
     )
 
     resp = authorization._get_policy(
@@ -62,7 +64,7 @@ def test_find_viewer_policy() -> None:
 
 
 def test_find_no_policy_when_role_doesnt_match() -> None:
-    authorization = Authorization(policies=[viewer_policy], strategy_mapper={})
+    authorization = Authorization(policies=[viewer_policy], strategy_mapper_callable=Mock(return_value={}))
 
     resp = authorization._get_policy(
         user_role=Role.EDITOR,
@@ -76,7 +78,7 @@ def test_find_no_policy_when_role_doesnt_match() -> None:
 
 def test_find_form_policy() -> None:
     authorization = Authorization(
-        policies=[form_policy, viewer_policy, wildcard_policy], strategy_mapper={}
+        policies=[form_policy, viewer_policy, wildcard_policy], strategy_mapper_callable=Mock(return_value={})
     )
 
     resp = authorization._get_policy(
@@ -90,7 +92,7 @@ def test_find_form_policy() -> None:
 
 
 def test_find_no_policy_when_resource_is_not_found() -> None:
-    authorization = Authorization(policies=[form_policy], strategy_mapper={})
+    authorization = Authorization(policies=[form_policy], strategy_mapper_callable=Mock(return_value={}))
 
     resp = authorization._get_policy(
         user_role=Role.ADMIN,
@@ -104,7 +106,7 @@ def test_find_no_policy_when_resource_is_not_found() -> None:
 
 def test_find_update_policy() -> None:
     authorization = Authorization(
-        policies=[update_policy, wildcard_policy], strategy_mapper={}
+        policies=[update_policy, wildcard_policy], strategy_mapper_callable=Mock(return_value={})
     )
 
     resp = authorization._get_policy(
