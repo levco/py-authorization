@@ -12,6 +12,7 @@ from py_authorization import (
     Strategy,
     StrategyMapper,
 )
+from py_authorization.user import User
 
 T = TypeVar("T", bound=object)
 
@@ -45,9 +46,9 @@ strategy_policy = Policy(
 def test_authorization_evaluates_simple_policy() -> None:
     authorization = Authorization(policies=[admin_policy], strategy_mapper_callable=Mock(return_value={}))
     form = Mock()
-
+    user = User(role=Role.ADMIN)
     resp = authorization.apply_policies_to_one(
-        user_role=Role.ADMIN,
+        user=user,
         entity=form,
         resource_to_check="Form",
         action=Action.CREATE,
@@ -59,9 +60,10 @@ def test_authorization_evaluates_simple_policy() -> None:
 def test_authorization_evaluates_simple_policy_and_rejects_the_object() -> None:
     authorization = Authorization(policies=[admin_policy], strategy_mapper_callable=Mock(return_value={}))
     form = Mock()
+    user = User(role=Role.VIEWER)
 
     resp = authorization.apply_policies_to_one(
-        user_role=Role.VIEWER,
+        user=user,
         entity=form,
         resource_to_check="Form",
         action=Action.CREATE,
@@ -75,9 +77,10 @@ def test_authorization_evaluates_simple_policy_multiple_objects() -> None:
         policies=[admin_policy], strategy_mapper_callable=Mock(return_value={})
     )
     forms = [Mock(), Mock()]
+    user = User(role=Role.ADMIN)
 
     resp = authorization.apply_policies_to_many(
-        user_role=Role.ADMIN,
+        user=user,
         entities=forms,
         resource_to_check="Form",
         action=Action.CREATE,
@@ -89,9 +92,10 @@ def test_authorization_evaluates_simple_policy_multiple_objects() -> None:
 def test_authorization_evaluates_simple_policy_and_reject_multiple_objects() -> None:
     authorization = Authorization(policies=[admin_policy], strategy_mapper_callable=Mock(return_value={}))
     forms = [Mock(), Mock()]
+    user = User(role=Role.VIEWER)
 
     resp = authorization.apply_policies_to_many(
-        user_role=Role.VIEWER,
+        user=user,
         entities=forms,
         resource_to_check="Form",
         action=Action.CREATE,
@@ -112,9 +116,10 @@ def test_authorization_applies_policy_with_strategy() -> None:
     )
 
     forms = [Mock(id=1), Mock(id=2)]
+    user = User(role=Role.VIEWER)
 
     resp = authorization.apply_policies_to_many(
-        user_role=Role.VIEWER,
+        user=user,
         entities=forms,
         resource_to_check="Form",
         action=Action.READ,
@@ -136,9 +141,10 @@ def test_authorization_applies_policy_with_strategy_to_one_object() -> None:
         strategy_mapper_callable=Mock(return_value=strategy_mapper)
     )
     form = Mock()
+    user = User(role=Role.ADMIN)
 
     resp = authorization.apply_policies_to_one(
-        user_role=Role.ADMIN,
+        user=user,
         entity=form,
         resource_to_check="Form",
         action=Action.CREATE,
@@ -150,9 +156,10 @@ def test_authorization_applies_policy_with_strategy_to_one_object() -> None:
 def test_authorization_evaluates_simple_policy_query() -> None:
     authorization = Authorization(policies=[admin_policy], strategy_mapper_callable=Mock(return_value={}))
     query = Mock()
+    user = User(role=Role.ADMIN)
 
     resp = authorization.apply_policies_to_query(
-        user_role=Role.ADMIN,
+        user=user,
         query=query,
         action=Action.CREATE,
         resources_to_check=["Form"],
@@ -164,9 +171,10 @@ def test_authorization_evaluates_simple_policy_query() -> None:
 def test_authorization_evaluates_simple_policy_query_and_apply_empty_filter_when_is_rejected() -> None:
     authorization = Authorization(policies=[admin_policy], strategy_mapper_callable=Mock(return_value={}))
     query = Mock()
+    user = User(role=Role.VIEWER)
 
     resp = authorization.apply_policies_to_query(
-        user_role=Role.VIEWER,
+        user=user,
         query=query,
         action=Action.CREATE,
         resources_to_check=["Form"],
@@ -186,9 +194,10 @@ def test_authorization_applies_policy_with_strategy_to_query() -> None:
         policies=[strategy_policy], strategy_mapper_callable=Mock(return_value=strategy_mapper)
     )
     query = Mock()
+    user = User(role=Role.VIEWER)
 
     authorization.apply_policies_to_query(
-        user_role=Role.VIEWER,
+        user=user,
         query=query,
         action=Action.READ,
         resources_to_check=["Form"],
