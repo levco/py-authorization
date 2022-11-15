@@ -3,6 +3,7 @@ build/
 __pycache__/
 py_authorization.egg-info/
 .mypy_cache/
+.idea/
 
 *.pyc
 .DS_Store
