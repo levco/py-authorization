@@ -227,7 +227,7 @@ class Authorization:
         Applies policies to one entity and return the entity if its allowed
         """
         self.logger.debug(f"Apply policies to ONE: {entity}")
-        if not entity:
+        if not entity and not resource_to_check:
             return None
         action = action or self.default_action
 
