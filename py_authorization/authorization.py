@@ -217,7 +217,7 @@ class Authorization:
         self,
         *,
         user: User,
-        entity: Optional[T],
+        entity: Optional[T] = None,
         action: Optional[str] = None,
         sub_action: Optional[str] = None,
         resource_to_check: Optional[str] = None,
@@ -340,7 +340,10 @@ class Authorization:
         return query
 
     def _apply_strategies_to_entity(
-        self, entity: Optional[T], strategies: list[Strategy], context: Context
+        self,
+        entity: T,
+        strategies: list[Strategy],
+        context: Context,
     ) -> Optional[T]:
         for strategy in strategies:
             strategy_instance = self.strategy_builder.build(strategy)
