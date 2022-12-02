@@ -3,6 +3,7 @@ from .context import Context
 from .policy import Policy, Strategy
 from .policy_strategy import PolicyStrategy
 from .policy_strategy_builder import PolicyStrategyBuilder, StrategyMapper
+from .user import User
 
 __all__ = [
     "Authorization",
@@ -13,4 +14,5 @@ __all__ = [
     "PolicyStrategy",
     "PolicyStrategyBuilder",
     "StrategyMapper",
+    "User",
 ]
