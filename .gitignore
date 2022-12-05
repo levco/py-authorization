@@ -4,6 +4,7 @@ __pycache__/
 py_authorization.egg-info/
 .mypy_cache/
 .idea/
+dist/
 
 *.pyc
 .DS_Store

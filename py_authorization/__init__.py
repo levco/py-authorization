@@ -1,3 +1,7 @@
+"""Easily manage authorization complex logic"""
+
+__version__ = "1.3.0"
+
 from .authorization import Authorization, CheckResponse
 from .context import Context
 from .policy import Policy, Strategy
