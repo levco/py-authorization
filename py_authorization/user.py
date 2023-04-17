@@ -5,4 +5,4 @@ from typing import Any, Optional
 @dataclass
 class User:
     role: str
-    id: Optional[Any] = None
+    id: Optional[Any]
