@@ -59,7 +59,6 @@ class Authorization:
     ) -> Optional[Policy]:
         policy: Policy
         for policy in self.policies:
-
             roles = policy.roles
             resources = [r.lower() for r in policy.resources]
             actions = policy.actions
