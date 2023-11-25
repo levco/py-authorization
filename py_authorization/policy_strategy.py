@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from sqlalchemy.orm.query import Query
 
-from py_authorization.context import Context
+from .context import Context
+
+
+class EmptyEntity(object):
+    """An empty entity is one that is passed as a fake entity to methods that ask for one but the current permission
+    check doesn't require an entity to run.
+    """
+
+    pass
+
 
 T = TypeVar("T", bound=object)
 
@@ -15,7 +24,7 @@ class PolicyStrategy(ABC, Generic[T]):
         self.args = args
 
     @abstractmethod
-    def apply_policies_to_entity(self, entity: T, context: Context) -> Optional[T]:
+    def apply_policies_to_entity(self, entity: T | EmptyEntity, context: Context) -> T | None:
         pass
 
     @abstractmethod
