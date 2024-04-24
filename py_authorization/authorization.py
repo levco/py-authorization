@@ -283,7 +283,6 @@ class Authorization:
             resources_to_check = entities.keys() or []
 
         self.logger.debug("Resources from queries")
-        self.logger.debug(resources_to_check)
 
         self.logger.debug(f"Entities to look for policies: {resources_to_check}")
         for resource_to_access in resources_to_check:
