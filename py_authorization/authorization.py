@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any, Callable, Iterable, Optional, TypedDict, TypeVar
 
 from sqlalchemy import inspect
@@ -35,7 +35,9 @@ class Authorization:
         policies: list[Policy],
         strategy_mapper_callable: Callable[[], StrategyMapper],
         default_action: str = "read",
+        log_level: int = logging.DEBUG,
     ) -> None:
+        self.log_level = log_level
         self.logger = logging.getLogger(__name__)
         self.default_action = default_action
         self.policies = policies
@@ -130,7 +132,7 @@ class Authorization:
             return False
         if policy.deny:
             return False
-
+        self.logger.log(self.log_level, f"Applying Policy: {asdict(policy)}")
         if policy.strategies:
             context = Context(
                 user=user,
@@ -218,7 +220,7 @@ class Authorization:
         """
         Applies policies to one entity and return the entity if its allowed
         """
-        self.logger.debug(f"Apply policies to ONE: {entity}")
+        self.logger.log(self.log_level, f"Apply policies to ONE: {entity}")
         if not entity:
             return None
         action = action or self.default_action
@@ -236,13 +238,13 @@ class Authorization:
         )
 
         if not policy:
-            self.logger.debug(f"[x] Policy not found, resource: '{resource_to_access}'")
+            self.logger.log(self.log_level, f"[x] Policy not found, resource: '{resource_to_access}'")
             return None
 
-        self.logger.debug(f"Policy applied: {policy}")
+        self.logger.log(self.log_level, f"Applying Policy: {asdict(policy)}")
 
         if policy.deny:
-            self.logger.debug(f"[x] Resource denied by: {policy}, resource: '{resource_to_access}'")
+            self.logger.log(self.log_level, f"[x] Resource denied by: {policy}, resource: '{resource_to_access}'")
             return None
 
         if not policy.strategies:
@@ -273,7 +275,7 @@ class Authorization:
         It always returns a sqlalchemy query , in case of no access it return a query that result in no data
 
         """
-        self.logger.debug("Apply policies to QUERY")
+        self.logger.log(self.log_level, "Apply policies to QUERY")
         args = args or dict()
         action = action or self.default_action
         strategies_to_apply: list[_ApplicableStrategies] = []
@@ -282,11 +284,11 @@ class Authorization:
             entities = all_entities_in_statement(query)
             resources_to_check = entities.keys() or []
 
-        self.logger.debug("Resources from queries")
+        self.logger.log(self.log_level, "Resources from queries")
 
-        self.logger.debug(f"Entities to look for policies: {resources_to_check}")
+        self.logger.log(self.log_level, f"Entities to look for policies: {resources_to_check}")
         for resource_to_access in resources_to_check:
-            self.logger.debug(f"Checking Resource: '{resource_to_access}'")
+            self.logger.log(self.log_level, f"Checking Resource: '{resource_to_access}'")
             policy = self._get_policy(
                 user=user,
                 resource_to_access=resource_to_access,
@@ -294,13 +296,13 @@ class Authorization:
                 sub_action=sub_action,
             )
             if not policy:
-                self.logger.debug(f"[x] Policy not found, resource: '{resource_to_access}'")
+                self.logger.log(self.log_level, f"[x] Policy not found, resource: '{resource_to_access}'")
                 return query.filter(False)
 
-            self.logger.debug(f"Policy applied: {policy}")
+            self.logger.log(self.log_level, f"Applying Policy: {asdict(policy)}")
 
             if policy.deny:
-                self.logger.debug(f"[x] Resource denied by {policy}, resource: '{resource_to_access}'")
+                self.logger.log(self.log_level, f"[x] Resource denied by {policy}, resource: '{resource_to_access}'")
                 return query.filter(False)
 
             if policy.strategies:
