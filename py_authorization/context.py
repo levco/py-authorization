@@ -11,5 +11,6 @@ class Context:
     policy: Policy
     resource: str
     args: dict[str, Any]
+    cache: dict[str, Any]
     action: Optional[str] = None
     sub_action: Optional[str] = None
