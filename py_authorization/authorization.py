@@ -114,7 +114,6 @@ class Authorization:
         resource: str,
         sub_action: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[dict[str, Any]] = None,
     ) -> bool:
         """
         Checks permissions not entity specific , returns True/False.
@@ -140,7 +139,6 @@ class Authorization:
                 action=action,
                 sub_action=sub_action,
                 args=args or dict(),
-                cache=cache or dict()
             )
             if not self._apply_strategies_to_entity(
                 entity=EmptyEntity(), strategies=policy.strategies, context=context
@@ -158,7 +156,6 @@ class Authorization:
         resource: str,
         sub_action: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[dict[str, Any]] = None,
     ) -> bool:
         """
         Checks a specific entity against the policies rules and returns True/False
@@ -170,7 +167,6 @@ class Authorization:
             action=action,
             sub_action=sub_action,
             args=args,
-            cache=cache
         )
         return True if resp else False
 
@@ -183,7 +179,6 @@ class Authorization:
         sub_action: Optional[str] = None,
         resource_to_check: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[dict[str, Any]] = None,
     ) -> list[T]:
         """
         Applies policies to multiple entities and returns a list of entities allowed
@@ -205,7 +200,6 @@ class Authorization:
                 entity=entity,
                 resource_to_check=resource_to_check,
                 args=args,
-                cache=cache
             )
             if valid_entity:
                 resp.append(valid_entity)
@@ -220,7 +214,6 @@ class Authorization:
         sub_action: Optional[str] = None,
         resource_to_check: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[dict[str, Any]] = None,
     ) -> Optional[T]:
         """
         Applies policies to one entity and return the entity if its allowed
@@ -262,7 +255,6 @@ class Authorization:
             action=action,
             sub_action=sub_action,
             args=args or dict(),
-            cache = cache or dict()
         )
         return self._apply_strategies_to_entity(entity, policy.strategies, context)
 
@@ -275,7 +267,6 @@ class Authorization:
         sub_action: Optional[str] = None,
         resources_to_check: Optional[list[str]] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[dict[str, Any]] = None,
     ) -> Query:
         """
         Applies policies to a query , in case of have an strategy, it applies the strategy filtering the query
@@ -320,7 +311,6 @@ class Authorization:
                     action=action,
                     sub_action=sub_action,
                     args=args,
-                    cache=cache or dict()
                 )
                 strategies_to_apply.append(dict(strategies=policy.strategies, context=context))
         if not strategies_to_apply:
