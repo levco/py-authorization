@@ -30,7 +30,6 @@ class Cache(Generic[EnumHashKey]):
         hash_key: EnumHashKey,
         key: tuple[Any, ...],
         function_for_value: Callable[..., T | None],
-        # return_type: type[T],
     ) -> T | None:
         value = self.get(hash_key, key)
         if value is None:
