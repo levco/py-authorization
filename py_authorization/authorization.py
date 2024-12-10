@@ -5,7 +5,7 @@ from typing import Any, Callable, Iterable, Optional, TypedDict, TypeVar
 from sqlalchemy import inspect
 from sqlalchemy.orm.query import Query
 
-from .context import Context
+from .context import Cache, Context
 from .policy import Policy, Strategy
 from .policy_strategy import EmptyEntity
 from .policy_strategy_builder import PolicyStrategyBuilder, StrategyMapper
@@ -39,7 +39,9 @@ class Authorization:
         self.logger = logging.getLogger(__name__)
         self.default_action = default_action
         self.policies = policies
-        self.strategy_builder = PolicyStrategyBuilder(strategy_mapper_callable=strategy_mapper_callable)
+        self.strategy_builder = PolicyStrategyBuilder(
+            strategy_mapper_callable=strategy_mapper_callable
+        )
 
     def _get_policy(
         self,
@@ -114,7 +116,7 @@ class Authorization:
         resource: str,
         sub_action: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[dict[str, Any]] = None,
+        cache: Optional[Cache] = None,
     ) -> bool:
         """
         Checks permissions not entity specific , returns True/False.
@@ -140,7 +142,7 @@ class Authorization:
                 action=action,
                 sub_action=sub_action,
                 args=args or dict(),
-                cache=cache or dict()
+                cache=cache or Cache(),
             )
             if not self._apply_strategies_to_entity(
                 entity=EmptyEntity(), strategies=policy.strategies, context=context
@@ -158,7 +160,7 @@ class Authorization:
         resource: str,
         sub_action: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[dict[str, Any]] = None,
+        cache: Optional[Cache] = None,
     ) -> bool:
         """
         Checks a specific entity against the policies rules and returns True/False
@@ -170,7 +172,7 @@ class Authorization:
             action=action,
             sub_action=sub_action,
             args=args,
-            cache=cache
+            cache=cache or Cache(),
         )
         return True if resp else False
 
@@ -183,7 +185,7 @@ class Authorization:
         sub_action: Optional[str] = None,
         resource_to_check: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[dict[str, Any]] = None,
+        cache: Optional[Cache] = None,
     ) -> list[T]:
         """
         Applies policies to multiple entities and returns a list of entities allowed
@@ -205,7 +207,7 @@ class Authorization:
                 entity=entity,
                 resource_to_check=resource_to_check,
                 args=args,
-                cache=cache
+                cache=cache,
             )
             if valid_entity:
                 resp.append(valid_entity)
@@ -220,7 +222,7 @@ class Authorization:
         sub_action: Optional[str] = None,
         resource_to_check: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[dict[str, Any]] = None,
+        cache: Optional[Cache] = None,
     ) -> Optional[T]:
         """
         Applies policies to one entity and return the entity if its allowed
@@ -249,7 +251,9 @@ class Authorization:
         self.logger.debug(f"Policy applied: {policy}")
 
         if policy.deny:
-            self.logger.debug(f"[x] Resource denied by: {policy}, resource: '{resource_to_access}'")
+            self.logger.debug(
+                f"[x] Resource denied by: {policy}, resource: '{resource_to_access}'"
+            )
             return None
 
         if not policy.strategies:
@@ -262,7 +266,7 @@ class Authorization:
             action=action,
             sub_action=sub_action,
             args=args or dict(),
-            cache = cache or dict()
+            cache=cache or Cache(),
         )
         return self._apply_strategies_to_entity(entity, policy.strategies, context)
 
@@ -275,7 +279,7 @@ class Authorization:
         sub_action: Optional[str] = None,
         resources_to_check: Optional[list[str]] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[dict[str, Any]] = None,
+        cache: Optional[Cache] = None,
     ) -> Query:
         """
         Applies policies to a query , in case of have an strategy, it applies the strategy filtering the query
@@ -303,13 +307,17 @@ class Authorization:
                 sub_action=sub_action,
             )
             if not policy:
-                self.logger.debug(f"[x] Policy not found, resource: '{resource_to_access}'")
+                self.logger.debug(
+                    f"[x] Policy not found, resource: '{resource_to_access}'"
+                )
                 return query.filter(False)
 
             self.logger.debug(f"Policy applied: {policy}")
 
             if policy.deny:
-                self.logger.debug(f"[x] Resource denied by {policy}, resource: '{resource_to_access}'")
+                self.logger.debug(
+                    f"[x] Resource denied by {policy}, resource: '{resource_to_access}'"
+                )
                 return query.filter(False)
 
             if policy.strategies:
@@ -320,14 +328,18 @@ class Authorization:
                     action=action,
                     sub_action=sub_action,
                     args=args,
-                    cache=cache or dict()
+                    cache=cache or Cache(),
                 )
-                strategies_to_apply.append(dict(strategies=policy.strategies, context=context))
+                strategies_to_apply.append(
+                    dict(strategies=policy.strategies, context=context)
+                )
         if not strategies_to_apply:
             return query
 
         for to_apply in strategies_to_apply:
-            query = self._apply_strategies_to_query(query, to_apply["strategies"], to_apply["context"])
+            query = self._apply_strategies_to_query(
+                query, to_apply["strategies"], to_apply["context"]
+            )
         return query
 
     def _apply_strategies_to_entity(
@@ -341,10 +353,14 @@ class Authorization:
             strategy_instance = self.strategy_builder.build(strategy)
             if not strategy_instance:
                 return None
-            processed_entity = strategy_instance.apply_policies_to_entity(processed_entity, context)
+            processed_entity = strategy_instance.apply_policies_to_entity(
+                processed_entity, context
+            )
         return processed_entity
 
-    def _apply_strategies_to_query(self, query: Query, strategies: list[Strategy], context: Context) -> Query:
+    def _apply_strategies_to_query(
+        self, query: Query, strategies: list[Strategy], context: Context
+    ) -> Query:
         for strategy in strategies:
             strategy_instance = self.strategy_builder.build(strategy)
             if not strategy_instance:
