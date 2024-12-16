@@ -1,6 +1,6 @@
 """Easily manage authorization complex logic"""
 
-__version__ = "1.6.1"
+__version__ = "1.7.0"
 
 from .authorization import Authorization, CheckResponse
 from .context import Context

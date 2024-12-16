@@ -5,7 +5,7 @@ from typing import Any, Generic, TypeVar
 
 from sqlalchemy.orm.query import Query
 
-from .context import Context
+from .context import Context, EnumHashKey
 
 
 class EmptyEntity(object):
@@ -24,9 +24,10 @@ class PolicyStrategy(ABC, Generic[T]):
         self.args = args
 
     @abstractmethod
-    def apply_policies_to_entity(self, entity: T | EmptyEntity, context: Context) -> T | None:
+    def apply_policies_to_entity(
+        self, entity: T | EmptyEntity, context: Context[EnumHashKey]
+    ) -> T | None:
         pass
 
-    @abstractmethod
-    def apply_policies_to_query(self, query: Query[T], context: Context) -> Query[T]:
-        pass
+    def apply_policies_to_query(self, query: Query[T], context: Context[EnumHashKey]) -> Query[T]:
+        return query
