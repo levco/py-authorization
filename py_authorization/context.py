@@ -12,6 +12,13 @@ EnumHashKey = TypeVar("EnumHashKey", bound=Enum)
 @dataclass
 class Cache(Generic[EnumHashKey]):
     cache: dict[EnumHashKey, dict[Any, Any]] = field(default_factory=dict)
+    
+    def get_generic(self, key: EnumHashKey) -> Any | None:
+        return self.cache.get(key)
+
+    def set_generic(self, key: EnumHashKey, value: Any) -> Any:
+        self.cache[key] = value
+        return value
 
     def get(
         self,
@@ -21,7 +28,7 @@ class Cache(Generic[EnumHashKey]):
     ) -> T | None:
         return self.cache.get(hash_key, {}).get(key)
 
-    def set(self, hash_key: EnumHashKey, key: tuple[Any, ...], value: T) -> None:
+    def h_set(self, hash_key: EnumHashKey, key: tuple[Any, ...], value: T) -> None:
         self.cache[hash_key] = self.cache.get(hash_key, {})
         self.cache[hash_key][key] = value
 
@@ -45,6 +52,6 @@ class Context(Generic[EnumHashKey]):
     policy: Policy
     resource: str
     args: dict[str, Any]
-    cache: Cache[EnumHashKey]
+    cache: Cache[EnumHashKey] = field(default_factory=Cache)
     action: Optional[str] = None
     sub_action: Optional[str] = None

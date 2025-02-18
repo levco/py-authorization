@@ -29,5 +29,7 @@ class PolicyStrategy(ABC, Generic[T]):
     ) -> T | None:
         pass
 
-    def apply_policies_to_query(self, query: Query[T], context: Context[EnumHashKey]) -> Query[T]:
+    def apply_policies_to_query(
+        self, query: Query[T], context: Context[EnumHashKey]
+    ) -> Query[T]:
         return query

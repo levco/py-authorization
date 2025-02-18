@@ -12,6 +12,7 @@ from py_authorization import (
     Strategy,
     StrategyMapper,
 )
+from py_authorization.context import EnumHashKey
 from py_authorization.user import User
 
 T = TypeVar("T", bound=object)
@@ -112,7 +113,7 @@ def test_authorization_evaluates_simple_policy_and_reject_multiple_objects() -> 
 
 def test_authorization_applies_policy_with_strategy() -> None:
     class TestStrategy(PolicyStrategy):
-        def apply_policies_to_entity(self, entity: T, context: Context) -> Optional[T]:
+        def apply_policies_to_entity(self, entity: T, context: Context[EnumHashKey]) -> Optional[T]:
             mock = cast(Mock, entity)
             return mock if mock.id == 2 else None
 
@@ -138,7 +139,7 @@ def test_authorization_applies_policy_with_strategy() -> None:
 
 def test_authorization_applies_policy_with_strategy_to_one_object() -> None:
     class TestStrategy(PolicyStrategy):
-        def apply_policies_to_entity(self, entity: T, context: Context) -> Optional[T]:
+        def apply_policies_to_entity(self, entity: T, context: Context[EnumHashKey]) -> Optional[T]:
             mock = cast(Mock, entity)
             return mock if mock.id == 2 else None
 
@@ -199,7 +200,7 @@ def test_authorization_evaluates_simple_policy_query_and_apply_empty_filter_when
 
 def test_authorization_applies_policy_with_strategy_to_query() -> None:
     class TestStrategy(PolicyStrategy):
-        def apply_policies_to_query(self, query: Query, context: Context) -> Query:
+        def apply_policies_to_query(self, query: Query, context: Context[EnumHashKey]) -> Query:
             query.filter("test_filter")
 
     strategy_mapper: StrategyMapper = {"TestStrategy": TestStrategy}

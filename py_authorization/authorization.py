@@ -5,7 +5,7 @@ from typing import Any, Callable, Iterable, Optional, TypedDict, TypeVar
 from sqlalchemy import inspect
 from sqlalchemy.orm.query import Query
 
-from .context import Cache, Context
+from .context import Cache, Context, EnumHashKey
 from .policy import Policy, Strategy
 from .policy_strategy import EmptyEntity
 from .policy_strategy_builder import PolicyStrategyBuilder, StrategyMapper
@@ -116,7 +116,7 @@ class Authorization:
         resource: str,
         sub_action: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[Cache] = None,
+        cache: Optional[Cache[EnumHashKey]] = None,
     ) -> bool:
         """
         Checks permissions not entity specific , returns True/False.
@@ -160,7 +160,7 @@ class Authorization:
         resource: str,
         sub_action: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[Cache] = None,
+        cache: Optional[Cache[EnumHashKey]] = None,
     ) -> bool:
         """
         Checks a specific entity against the policies rules and returns True/False
@@ -185,7 +185,7 @@ class Authorization:
         sub_action: Optional[str] = None,
         resource_to_check: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[Cache] = None,
+        cache: Optional[Cache[EnumHashKey]] = None,
     ) -> list[T]:
         """
         Applies policies to multiple entities and returns a list of entities allowed
@@ -222,7 +222,7 @@ class Authorization:
         sub_action: Optional[str] = None,
         resource_to_check: Optional[str] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[Cache] = None,
+        cache: Optional[Cache[EnumHashKey]] = None,
     ) -> Optional[T]:
         """
         Applies policies to one entity and return the entity if its allowed
@@ -279,7 +279,7 @@ class Authorization:
         sub_action: Optional[str] = None,
         resources_to_check: Optional[list[str]] = None,
         args: Optional[dict[str, Any]] = None,
-        cache: Optional[Cache] = None,
+        cache: Optional[Cache[EnumHashKey]] = None,
     ) -> Query:
         """
         Applies policies to a query , in case of have an strategy, it applies the strategy filtering the query
@@ -346,7 +346,7 @@ class Authorization:
         self,
         entity: T,
         strategies: list[Strategy],
-        context: Context,
+        context: Context[EnumHashKey],
     ) -> Optional[T]:
         processed_entity: Optional[T] = entity
         for strategy in strategies:
@@ -359,7 +359,7 @@ class Authorization:
         return processed_entity
 
     def _apply_strategies_to_query(
-        self, query: Query, strategies: list[Strategy], context: Context
+        self, query: Query, strategies: list[Strategy], context: Context[EnumHashKey]
     ) -> Query:
         for strategy in strategies:
             strategy_instance = self.strategy_builder.build(strategy)
