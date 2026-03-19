@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Optional, TypedDict, TypeVar
 
-from sqlalchemy import inspect
+from sqlalchemy import inspect, or_
 from sqlalchemy.orm.query import Query
 
 from .context import Context
@@ -16,6 +18,7 @@ T = TypeVar("T", bound=object)
 
 class _ApplicableStrategies(TypedDict):
     strategies: list[Strategy]
+    or_strategies: Optional[list[Strategy]]
     context: Context
 
 
@@ -78,6 +81,83 @@ class Authorization:
             return policy
         return None
 
+    def _any_or_strategy_passes_entity(
+        self,
+        entity: T,
+        or_strategies: list[Strategy],
+        context: Context,
+    ) -> bool:
+        """Evaluate or_strategies with OR semantics: any one passing = True."""
+        for strategy in or_strategies:
+            strategy_instance = self.strategy_builder.build(strategy)
+            if not strategy_instance:
+                continue
+            result = strategy_instance.apply_policies_to_entity(entity, context)
+            if result is not None:
+                self.logger.debug(f"OR strategy passed: {strategy.name}")
+                return True
+        self.logger.debug("All OR strategies returned None — denied")
+        return False
+
+    def _evaluate_entity(
+        self,
+        entity: T,
+        policy: Policy,
+        context: Context,
+    ) -> Optional[T]:
+        """
+        Shared AND+OR entity evaluation.
+        - strategies (AND): all must pass
+        - or_strategies (OR): any one must pass
+        - When both present: AND must pass AND at least one OR must pass
+        - Neither present: allow
+        """
+        has_and = bool(policy.strategies)
+        has_or = bool(policy.or_strategies)
+
+        if not has_and and not has_or:
+            return entity
+
+        and_result: Optional[T] = entity
+        if has_and:
+            and_result = self._apply_strategies_to_entity(entity, policy.strategies, context)  # type: ignore[arg-type]
+            if and_result is None:
+                self.logger.debug("AND strategies denied entity")
+                return None
+
+        if has_or:
+            if not self._any_or_strategy_passes_entity(entity, policy.or_strategies, context):  # type: ignore[arg-type]
+                return None
+
+        return and_result
+
+    def _combine_or_queries(
+        self,
+        query: Query,
+        or_strategies: list[Strategy],
+        context: Context,
+    ) -> Optional[Query]:
+        """
+        Run each OR strategy's query filter on the original query,
+        combine results via PK subquery OR.
+        Returns None if no OR strategy produced a valid filter.
+        """
+        pk_col = query.column_descriptions[0]["entity"].id
+        conditions = []
+
+        for strategy in or_strategies:
+            strategy_instance = self.strategy_builder.build(strategy)
+            if not strategy_instance:
+                continue
+            filtered = strategy_instance.apply_policies_to_query(query, context)
+            if filtered is not None:
+                conditions.append(pk_col.in_(filtered.with_entities(pk_col).subquery()))
+
+        if not conditions:
+            return None
+
+        return query.filter(or_(*conditions))
+
     def get_permissions_info(
         self,
         *,
@@ -104,7 +184,7 @@ class Authorization:
         if policy and policy.deny:
             info = "No policy found for this resource."
             allowed = False
-        if policy and policy.strategies:
+        if policy and (policy.strategies or policy.or_strategies):
             info = "Allowed but filtered."
             allowed = False
 
@@ -141,21 +221,16 @@ class Authorization:
         if policy.deny:
             return False
 
-        if policy.strategies:
-            context = Context(
-                user=user,
-                policy=policy,
-                resource=resource,
-                action=action,
-                sub_action=sub_action,
-                args=args or dict(),
-            )
-            if not self._apply_strategies_to_entity(
-                entity=_EmptyEntity(), strategies=policy.strategies, context=context
-            ):
-                return False
-
-        return True
+        context = Context(
+            user=user,
+            policy=policy,
+            resource=resource,
+            action=action,
+            sub_action=sub_action,
+            args=args or dict(),
+        )
+        result = self._evaluate_entity(_EmptyEntity(), policy, context)
+        return result is not None
 
     def is_entity_allowed(
         self,
@@ -257,9 +332,6 @@ class Authorization:
             )
             return None
 
-        if not policy.strategies:
-            return entity
-
         context = Context(
             user=user,
             policy=policy,
@@ -268,7 +340,7 @@ class Authorization:
             sub_action=sub_action,
             args=args or dict(),
         )
-        return self._apply_strategies_to_entity(entity, policy.strategies, context)
+        return self._evaluate_entity(entity, policy, context)
 
     def apply_policies_to_query(
         self,
@@ -320,7 +392,7 @@ class Authorization:
                 )
                 return query.filter(False)
 
-            if policy.strategies:
+            if policy.strategies or policy.or_strategies:
                 context = Context(
                     user=user,
                     policy=policy,
@@ -330,15 +402,29 @@ class Authorization:
                     args=args,
                 )
                 strategies_to_apply.append(
-                    dict(strategies=policy.strategies, context=context)
+                    dict(
+                        strategies=policy.strategies or [],
+                        or_strategies=policy.or_strategies,
+                        context=context,
+                    )
                 )
         if not strategies_to_apply:
             return query
 
         for to_apply in strategies_to_apply:
-            query = self._apply_strategies_to_query(
-                query, to_apply["strategies"], to_apply["context"]
-            )
+            and_strategies = to_apply["strategies"]
+            or_strats = to_apply["or_strategies"]
+            ctx = to_apply["context"]
+
+            if and_strategies:
+                query = self._apply_strategies_to_query(query, and_strategies, ctx)
+
+            if or_strats:
+                or_combined = self._combine_or_queries(query, or_strats, ctx)
+                if or_combined is None:
+                    return query.filter(False)
+                query = or_combined
+
         return query
 
     def _apply_strategies_to_entity(
