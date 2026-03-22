@@ -9,6 +9,7 @@ from sqlalchemy.orm.query import Query
 
 from .context import Context
 from .policy import Policy, Strategy
+from .policy_strategy import EmptyEntity
 from .policy_strategy_builder import PolicyStrategyBuilder, StrategyMapper
 from .sql_parser import all_entities_in_statement
 from .user import User
@@ -20,14 +21,6 @@ class _ApplicableStrategies(TypedDict):
     strategies: list[Strategy]
     or_strategies: Optional[list[Strategy]]
     context: Context
-
-
-class _EmptyEntity(object):
-    """An empty entity is one that is passed as a fake entity to methods that ask for one but the current permission
-    check doesn't require an entity to run.
-    """
-
-    pass
 
 
 @dataclass
@@ -49,9 +42,7 @@ class Authorization:
         self.logger = logging.getLogger(__name__)
         self.default_action = default_action
         self.policies = policies
-        self.strategy_builder = PolicyStrategyBuilder(
-            strategy_mapper_callable=strategy_mapper_callable
-        )
+        self.strategy_builder = PolicyStrategyBuilder(strategy_mapper_callable=strategy_mapper_callable)
 
     def _get_policy(
         self,
@@ -62,7 +53,6 @@ class Authorization:
     ) -> Optional[Policy]:
         policy: Policy
         for policy in self.policies:
-
             roles = policy.roles
             resources = [r.lower() for r in policy.resources]
             actions = policy.actions
@@ -327,9 +317,7 @@ class Authorization:
         self.logger.debug(f"Policy applied: {policy}")
 
         if policy.deny:
-            self.logger.debug(
-                f"[x] Resource denied by: {policy}, resource: '{resource_to_access}'"
-            )
+            self.logger.debug(f"[x] Resource denied by: {policy}, resource: '{resource_to_access}'")
             return None
 
         context = Context(
@@ -367,7 +355,6 @@ class Authorization:
             resources_to_check = entities.keys() or []
 
         self.logger.debug("Resources from queries")
-        self.logger.debug(resources_to_check)
 
         self.logger.debug(f"Entities to look for policies: {resources_to_check}")
         for resource_to_access in resources_to_check:
@@ -379,17 +366,13 @@ class Authorization:
                 sub_action=sub_action,
             )
             if not policy:
-                self.logger.debug(
-                    f"[x] Policy not found, resource: '{resource_to_access}'"
-                )
+                self.logger.debug(f"[x] Policy not found, resource: '{resource_to_access}'")
                 return query.filter(False)
 
             self.logger.debug(f"Policy applied: {policy}")
 
             if policy.deny:
-                self.logger.debug(
-                    f"[x] Resource denied by {policy}, resource: '{resource_to_access}'"
-                )
+                self.logger.debug(f"[x] Resource denied by {policy}, resource: '{resource_to_access}'")
                 return query.filter(False)
 
             if policy.strategies or policy.or_strategies:
@@ -438,14 +421,10 @@ class Authorization:
             strategy_instance = self.strategy_builder.build(strategy)
             if not strategy_instance:
                 return None
-            processed_entity = strategy_instance.apply_policies_to_entity(
-                processed_entity, context
-            )
+            processed_entity = strategy_instance.apply_policies_to_entity(processed_entity, context)
         return processed_entity
 
-    def _apply_strategies_to_query(
-        self, query: Query, strategies: list[Strategy], context: Context
-    ) -> Query:
+    def _apply_strategies_to_query(self, query: Query, strategies: list[Strategy], context: Context) -> Query:
         for strategy in strategies:
             strategy_instance = self.strategy_builder.build(strategy)
             if not strategy_instance:

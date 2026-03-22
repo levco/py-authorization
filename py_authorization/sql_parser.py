@@ -14,7 +14,6 @@ def to_class(entity):  # type: ignore
 
 
 def get_column_entity_with_attribute(statement, attribute):  # type: ignore
-
     try:
         for cd in statement.column_descriptions:
             if hasattr(cd.get("entity"), attribute):
@@ -104,6 +103,7 @@ def default_load_entities(entities):  # type: ignore
 # TODO: Still needs to be generalized & support other options.
 
 # the structure we're dealing with is essentially:
+
 
 # (path, strategy, options)
 # where "path" indicates what it is we are loading,

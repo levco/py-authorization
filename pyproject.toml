@@ -7,9 +7,7 @@ name = "py_authorization"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.7"
-dependencies = [
-    "SQLAlchemy~=1.4",
-]
+dependencies = ["SQLAlchemy>=1.4,<3.0"]
 dynamic = ["version", "description"]
 
 
@@ -18,3 +16,6 @@ profile = "black"
 line_length = 120
 multi_line_output = 3
 include_trailing_comma = true
+
+[tool.black]
+line-length = 120
