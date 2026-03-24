@@ -16,5 +16,6 @@ class Policy:
     actions: list[str]
     sub_action: Optional[str] = None
     strategies: Optional[list[Strategy]] = None
+    or_strategies: Optional[list[Strategy]] = None
     deny: bool = False
     last_rule: bool = False
