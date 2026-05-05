@@ -157,6 +157,10 @@ WHERE visibility_check
   )
 ```
 
+For query authorization, each OR strategy receives a fresh `session.query(model)` instead of the caller's already-filtered query. Caller filters and AND-strategy filters stay on the outer query and are applied once, while OR strategies contribute only their own access-check predicates.
+
+OR query strategies should be self-contained access checks and should not depend on filters already present on the incoming query.
+
 ## API
 
 | Method | Description |

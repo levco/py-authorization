@@ -49,9 +49,7 @@ class Authorization:
         self.logger = logging.getLogger(__name__)
         self.default_action = default_action
         self.policies = policies
-        self.strategy_builder = PolicyStrategyBuilder(
-            strategy_mapper_callable=strategy_mapper_callable
-        )
+        self.strategy_builder = PolicyStrategyBuilder(strategy_mapper_callable=strategy_mapper_callable)
 
     def _get_policy(
         self,
@@ -136,22 +134,48 @@ class Authorization:
         query: Query,
         or_strategies: list[Strategy],
         context: Context,
-    ) -> Optional[Query]:
-        """
-        Run each OR strategy's query filter on the original query,
-        combine results via PK subquery OR.
-        Returns None if no OR strategy produced a valid filter.
-        """
-        pk_col = query.column_descriptions[0]["entity"].id
-        conditions = []
+    ) -> Query | None:
+        """Combine ``or_strategies`` filters into ``query`` without duplicating
+        the outer query's filters inside each OR subquery.
 
+        A naive implementation passes ``query`` (which already carries the
+        caller-applied filters and any AND-strategy filters) to every OR
+        strategy, then wraps each strategy's result as
+        ``pk IN (SELECT pk FROM <filtered query>)``. That inlines the outer
+        filters once per OR strategy plus once on the outer query, so a policy
+        with N OR strategies ends up with N+1 copies of the same predicates.
+        For non-trivial base queries the duplicates can blow up the plan and
+        push the database into expensive sequential scans.
+
+        Mathematically the duplicates are redundant: ``outer AND (a OR b)`` ==
+        ``(outer AND a) OR (outer AND b)``. We strip them by handing each OR
+        strategy a bare ``session.query(model)`` so the strategy produces only
+        its own access-check filter; the outer query keeps applying the
+        caller and AND filters exactly once.
+
+        Strategies are expected to be self-contained access checks — they may
+        introspect the input query's columns/labels, but they must not depend
+        on the input query's filters for correctness.
+        """
+        if not or_strategies:
+            return None
+
+        first = query.column_descriptions[0]
+        model = first["entity"]
+        pk_col = model.id
+        # Fresh per-model query: introspection still works (same primary entity)
+        # and the resulting subquery contains only the strategy's own filter.
+        fresh_query = query.session.query(model)
+
+        conditions: list[Any] = []
         for strategy in or_strategies:
             strategy_instance = self.strategy_builder.build(strategy)
             if not strategy_instance:
                 continue
-            filtered = strategy_instance.apply_policies_to_query(query, context)
-            if filtered is not None:
-                conditions.append(pk_col.in_(filtered.with_entities(pk_col).subquery()))
+            filtered = strategy_instance.apply_policies_to_query(fresh_query, context)
+            if filtered is None:
+                continue
+            conditions.append(pk_col.in_(filtered.with_entities(pk_col).subquery()))
 
         if not conditions:
             return None
@@ -327,9 +351,7 @@ class Authorization:
         self.logger.debug(f"Policy applied: {policy}")
 
         if policy.deny:
-            self.logger.debug(
-                f"[x] Resource denied by: {policy}, resource: '{resource_to_access}'"
-            )
+            self.logger.debug(f"[x] Resource denied by: {policy}, resource: '{resource_to_access}'")
             return None
 
         context = Context(
@@ -379,17 +401,13 @@ class Authorization:
                 sub_action=sub_action,
             )
             if not policy:
-                self.logger.debug(
-                    f"[x] Policy not found, resource: '{resource_to_access}'"
-                )
+                self.logger.debug(f"[x] Policy not found, resource: '{resource_to_access}'")
                 return query.filter(False)
 
             self.logger.debug(f"Policy applied: {policy}")
 
             if policy.deny:
-                self.logger.debug(
-                    f"[x] Resource denied by {policy}, resource: '{resource_to_access}'"
-                )
+                self.logger.debug(f"[x] Resource denied by {policy}, resource: '{resource_to_access}'")
                 return query.filter(False)
 
             if policy.strategies or policy.or_strategies:
@@ -438,14 +456,10 @@ class Authorization:
             strategy_instance = self.strategy_builder.build(strategy)
             if not strategy_instance:
                 return None
-            processed_entity = strategy_instance.apply_policies_to_entity(
-                processed_entity, context
-            )
+            processed_entity = strategy_instance.apply_policies_to_entity(processed_entity, context)
         return processed_entity
 
-    def _apply_strategies_to_query(
-        self, query: Query, strategies: list[Strategy], context: Context
-    ) -> Query:
+    def _apply_strategies_to_query(self, query: Query, strategies: list[Strategy], context: Context) -> Query:
         for strategy in strategies:
             strategy_instance = self.strategy_builder.build(strategy)
             if not strategy_instance:
